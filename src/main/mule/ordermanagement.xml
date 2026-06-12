@@ -471,44 +471,6 @@ output application/json
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
-var a=[
-    {
-        "product_id": "P-02956a",
-        "product_name": "Kylaq",
-        "brand": "Skodas",
-        "category": "Fake suv",
-        "quantity": 8,
-        "availability": true,
-        "price": 1500000
-    },
-    {
-        "product_id": "P-5545b3",
-        "product_name": "Venue",
-        "brand": "Hyundai",
-        "category": "Car",
-        "quantity": 30,
-        "availability": true,
-        "price": 1200000
-    },
-    {
-        "product_id": "P-02967a",
-        "product_name": "Brezza",
-        "brand": "Maruti",
-        "category": "Fake suv",
-        "quantity": 10,
-        "availability": true,
-        "price": 1500000
-    },
-    {
-        "product_id": "P-5545b3",
-        "product_name": "Nexon",
-        "brand": "Tata",
-        "category": "Unreliable car",
-        "quantity": 0,
-        "availability": true,
-        "price": 1200000
-    }
-]
 
 var groupedOutput = do{
 	(payload map (value)->{
@@ -553,90 +515,7 @@ finalOutput groupBy $.status]]></ee:set-payload>
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
-var list=[
-    {
-        "order_id": "O-348d38",
-        "product_id": "P-02956a",
-        "quantity": 3
-    },
-    {
-        "order_id": "O-348d38",
-        "product_id": "P-5545b3",
-        "quantity": 2
-    },
-    {
-        "order_id": "O-8b7561",
-        "product_id": "P-02956a",
-        "quantity": 1
-    },
-    {
-        "order_id": "O-8b7561",
-        "product_id": "P-5545b3",
-        "quantity": 2
-    },
-    {
-        "order_id": "O-e65974",
-        "product_id": "P-02956a",
-        "quantity": 1
-    },
-    {
-        "order_id": "O-e65974",
-        "product_id": "P-5545b3",
-        "quantity": 1
-    },
-    {
-        "order_id": "O-f28010",
-        "product_id": "P-02956a",
-        "quantity": 1
-    },
-    {
-        "order_id": "O-f28010",
-        "product_id": "P-5545b3",
-        "quantity": 0
-    }
-]
-var order=[
-    {
-        "order_id": "O-348d38",
-        "cust_id": "C-99e37d",
-        "order_date": "2026-05-28",
-        "total_order_price": 5700000,
-        "exp_del_date": "2026-06-01",
-        "delivery_status": "in transit"
-    },
-    {
-        "order_id": "O-88354d",
-        "cust_id": "C-99e37d",
-        "order_date": "2026-05-27",
-        "total_order_price": 1100000,
-        "exp_del_date": "2026-05-31",
-        "delivery_status": "in transit"
-    },
-    {
-        "order_id": "O-8b7561",
-        "cust_id": "C-99e37d",
-        "order_date": "2026-05-28",
-        "total_order_price": 3500000,
-        "exp_del_date": "2026-06-01",
-        "delivery_status": "in transit"
-    },
-    {
-        "order_id": "O-e65974",
-        "cust_id": "C-99e37d",
-        "order_date": "2026-05-29",
-        "total_order_price": 2300000,
-        "exp_del_date": "2026-06-02",
-        "delivery_status": "in transit"
-    },
-    {
-        "order_id": "O-f28010",
-        "cust_id": "C-99e37d",
-        "order_date": "2026-05-28",
-        "total_order_price": 1100000,
-        "exp_del_date": "2026-06-01",
-        "delivery_status": "in transit"
-    }
-]
+
 var filteredOrders = do{
 	if(vars.orderId != null) 
 	(vars.ordersList filter $.order_id == vars.orderId) else vars.ordersList
