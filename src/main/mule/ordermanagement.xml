@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+    <http:listener-config name="ordermanagement-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="ordermanagement-config" api="resource::297e1185-2a7e-4734-9d69-effb0bb9fbe9:ordermanagement:1.0.8:raml:zip:ordermanagement.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <configuration-properties doc:name="Configuration properties" doc:id="6d352598-1ec4-4d14-9c54-c7c2e3301bca" file="configuration.properties" />
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="c120a618-ce31-4626-a64f-cbf440a70e64">
+        <db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.username}" password="${db.password}" database="order_management" />
+    </db:config>
+    <email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="4b1fe9ef-3a46-4cb6-aba7-b85bf2e31911">
+        <email:smtp-connection host="${smtp.host}" port="${smtp.port}" user="${smtp.username}" password="${smtp.password}" />
+    </email:smtp-config>
+    <flow name="ordermanagement-main">
+        <http:listener config-ref="ordermanagement-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="ordermanagement-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="ordermanagement-console">
+        <http:listener config-ref="ordermanagement-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="ordermanagement-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\addCust:application\json:ordermanagement-config" doc:id="2403b034-3e02-4547-968a-6d3c42c73a09">
+        <set-variable value="#[payload]" doc:name="OriginalPayload" doc:id="bc3d8795-cddc-47e0-b716-9cb5df48e157" variableName="originalPayload" />
+        <set-variable value="#[&quot;C-&quot;++ uuid()[0 to 5]]" doc:name="SetCustId" doc:id="1c284721-1780-43df-bdf1-9ffcec1c02e2" variableName="custId" />
+        <db:insert doc:name="Add Customer" doc:id="5d075c57-28d7-4f50-b1f6-eb414aa64c9a" config-ref="Database_Config">
+            <reconnect count="5" />
+            <db:sql><![CDATA[insert into cust_data(cust_id, cust_name, email, phone, city)
+values(:id, :name, :email, :phone, :city);]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	id:vars.custId,
+	name:payload.custName,
+	email:payload.email,
+	phone:payload.phone,
+	city:payload.city
+}]]]></db:input-parameters>
+        </db:insert>
+        <set-variable value="#[201]" doc:name="httpStatusCode" doc:id="cf78b554-e893-4e5d-a825-3e722d4c55ec" variableName="httpStatus" />
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Thanks for registering into orderManagement",
+  Cust_id:  vars.custId ++ " is your customer id"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="42b38c5f-11b1-4ba2-b408-dc6e5ed07a16" type="DB:QUERY_EXECUTION">
+                <set-variable value="#[409]" doc:name="httpStatusCode" doc:id="296b3641-6ca0-49cf-9ac2-f514b8a215b8" variableName="httpStatus" />
+                <ee:transform doc:name="Duplicate Info Warning" doc:id="0e7860cb-b74e-498f-8f2b-7a0dcd9d35d1">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+---
+{
+	Error:"Duplicate item found",
+	Message:(if((error.description default "") contains (vars.originalPayload.email default "")) "Email is already registered. Use alternate Email" 
+			else if((error.description default "") contains (vars.originalPayload.phone default "")) "PhoneNumber is already registered. Use alternate Number"
+			else "Registration error")
+			
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <sub-flow name="individualItemProcessing" doc:id="6cbfcd72-11d0-4a00-8199-2f19130bb350">
+        <foreach doc:name="TotalPriceCalculation/stockUpdate" doc:id="9cd40c7d-cbb7-4d75-8e7e-4cf19cf90416" collection="#[payload.listOfItems]">
+            <set-variable value="#[payload]" doc:name="item" doc:id="4c3b79e4-7014-46d3-bc4c-82d2e70d2c40" variableName="item" />
+            <db:select doc:name="getProductDetails" doc:id="010d249b-4a15-41ac-a449-7a1e4fb3b484" config-ref="Database_Config">
+                <db:sql><![CDATA[select * from inventory where product_id=:productId;]]></db:sql>
+                <db:input-parameters><![CDATA[#[{
+	productId:payload.productId
+}]]]></db:input-parameters>
+            </db:select>
+            <choice doc:name="checkAvailability" doc:id="577f688c-058d-48d2-b749-35793827ba5e">
+                <when expression="#[vars.item.quantity&gt;payload[0].quantity]">
+                    <set-variable value="#[payload[0].product_name]" doc:name="exceededProduct" doc:id="a02d42c5-cc9d-46b2-b4cc-9d96375ee558" variableName="exceededProduct" />
+                    <raise-error doc:name="APP:QUANTITY_EXCEEDED" doc:id="e3bb503a-556c-4651-a18a-bb4dbd870a3e" type="APP:QUANTITY_EXCEEDED" />
+                </when>
+            </choice>
+            <ee:transform doc:name="javaToJson" doc:id="3f1d609c-c736-44ba-bfe8-19d62cb41f0e">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+            <set-variable value="#[vars.totalOrderPrice + ((payload)[0].price as Number)*vars.item.quantity]" doc:name="totalOrderPriceUpdate" doc:id="f071f942-d6ee-42aa-9998-90e5f428b26a" variableName="totalOrderPrice" />
+            <db:update doc:name="updateQuantity" doc:id="17d09e62-5e9d-4fbc-b365-06604bf1a4b7" config-ref="Database_Config">
+                <db:sql><![CDATA[update inventory
+set quantity = quantity - :quan
+where product_id = :productId]]></db:sql>
+                <db:input-parameters><![CDATA[#[{
+	quan:vars.item.quantity,
+	productId:vars.item.productId
+}]]]></db:input-parameters>
+            </db:update>
+        </foreach>
+    </sub-flow>
+    <flow name="post:\order:application\json:ordermanagement-config" doc:id="1d12795b-cfbc-4ff4-ba9b-449b69b86f3e">
+        <set-variable value="#[payload]" doc:name="original payload" doc:id="a1f13055-6b64-467f-8ac7-8e6af03b9f06" variableName="originalPayload" />
+        <set-variable value="#[%dw 2.0&#xA;output application/json&#xA;---&#xA;0]" doc:name="totalOrderPrice" doc:id="540f2107-c77f-4516-97af-0108911998f3" variableName="totalOrderPrice" />
+        <set-variable value="#[%dw 2.0&#xA;output application/json&#xA;---&#xA;&quot;O-&quot;++ uuid()[0 to 5]]" doc:name="orderId" doc:id="a64d4991-62b9-4a0e-a6ac-d82c6f48770b" variableName="orderId" />
+        <set-variable value="#[%dw 2.0&#xA;output application/json&#xA;---&#xA;&quot; &quot;]" doc:name="exceeded product" doc:id="4abeb526-38d8-4793-ba77-8ec2bf4d4a44" variableName="exceededProduct" />
+        <try doc:name="Try" doc:id="56f89d0d-9b67-47fc-8492-134de777fb14" transactionalAction="ALWAYS_BEGIN">
+            <flow-ref doc:name="individualItemProcessing" doc:id="db9ccb7d-9280-4030-be13-30d743b3eb13" name="individualItemProcessing" />
+            <db:select doc:name="getUserData" doc:id="66c99464-059f-440c-b01b-5c1ab0dd0641" config-ref="Database_Config">
+                <db:sql><![CDATA[select * from cust_data where cust_id=:id;]]></db:sql>
+                <db:input-parameters><![CDATA[#[{
+	id:vars.originalPayload.custId
+}]]]></db:input-parameters>
+            </db:select>
+            <set-variable value="#[%dw 2.0&#xA;output application/json&#xA;---&#xA;if(lower(payload.city[0])==&quot;nagpur&quot;) |P4D| else if(lower(payload.city[0])==&quot;ahemdabad&quot;) |P6D| else |P110D|]" doc:name="deliveryTime" doc:id="c0fdcbe0-db58-444d-a657-a260cccc1560" variableName="deliveryTime" />
+            <db:insert doc:name="Place order" doc:id="b7d34e1b-cc39-4226-91be-09b2e6fffdd5" config-ref="Database_Config">
+                <db:sql><![CDATA[insert into order_table (order_id, cust_id, order_date, total_order_price, exp_del_date, delivery_status)
+values(:id, :custId, curdate(), :totalOrderPrice, :expDelDate, "in transit");]]></db:sql>
+                <db:input-parameters><![CDATA[#[{
+	id:vars.orderId,
+	custId:vars.originalPayload.custId,
+	totalOrderPrice:vars.totalOrderPrice,
+	expDelDate:(now() as Date) + ((vars.deliveryTime) as Period)
+}]]]></db:input-parameters>
+            </db:insert>
+            <foreach doc:name="orderItemsInsert" doc:id="49853f30-4eee-430e-99cd-0e8ca68d0f87" collection="#[vars.originalPayload.listOfItems]">
+                <set-variable value="#[payload]" doc:name="product" doc:id="5101cfbf-3d27-412f-8b2a-e1238700b56a" variableName="product" />
+                <db:select doc:name="getProductDetails" doc:id="1b26b8e4-35e7-4645-8737-63b2c2b03c5c" config-ref="Database_Config">
+                    <db:sql><![CDATA[select * from inventory where product_id=:productId;]]></db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	productId:payload.productId
+}]]]></db:input-parameters>
+                </db:select>
+                <db:insert doc:name="orderItemsInsert" doc:id="3755a332-178d-4093-9b79-0f1066ac6c66" config-ref="Database_Config">
+                    <db:sql><![CDATA[insert into order_items(order_id, product_id, quantity, order_price)
+values(:orderId, :productId, :quantity, :orderPrice);]]></db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	orderId:vars.orderId,
+	productId:vars.product.productId,
+	quantity:vars.product.quantity,
+	orderPrice:payload[0].price
+}]]]></db:input-parameters>
+                </db:insert>
+            </foreach>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="39c759bf-8b13-4057-a3c6-7bb5ed4777d8" type="APP:QUANTITY_EXCEEDED">
+                    <set-variable value="#[422]" doc:name="httpStatusCode" doc:id="a4a15992-0c7e-4e4c-a9d9-c3936ebfa2c6" variableName="httpStatus" />
+                    <ee:transform doc:name="quantity exceeded" doc:id="222ac260-d040-4304-a7f8-c83976724029">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status":"error",
+	"message":"Required quantity for " ++ vars.exceededProduct ++ " is not available"
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d0a58ee3-fe68-49f6-9688-d09a65d1535d" type="ANY">
+                    <ee:transform doc:name="reverted" doc:id="01d52cf6-ee16-4319-bc86-8f54b7989b38">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	error:"Unexpected error occured",
+	message:"Transaction reverted"
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+        <db:select doc:name="customerDetails" doc:id="6fec633f-0edf-4d2d-b9f8-692d9b5b2370" config-ref="Database_Config">
+            <db:sql><![CDATA[select * from cust_data where cust_id=:custId;]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	custId:vars.originalPayload.custId
+}]]]></db:input-parameters>
+        </db:select>
+        <email:send doc:name="orderConfirmation" doc:id="f683f07f-4afd-4e76-b11e-bb7b01fac668" toAddresses="#[payload.email]" config-ref="Email_SMTP" fromAddress="anuragninawe1802@gmail.com" subject="Order confirmation">
+            <reconnect count="10" />
+            <email:body contentType="text/plain" contentTransferEncoding="8BIT">
+                <email:content><![CDATA[#["Your order " ++ (vars.orderId default "") ++" has been successfully placed"]]]></email:content>
+            </email:body>
+        </email:send>
+        <set-variable value="#[201]" doc:name="httpStatusCode" doc:id="6c896b22-8a73-4a0e-a487-f7e6976f2d97" variableName="httpStatus" />
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Your order has been successfully placed",
+  order_id:vars.orderId
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="put:\product\(productId):application\json:ordermanagement-config">
+        <set-variable value="#[%dw 2.0&#xA;output application/json&#xA;---&#xA;attributes.uriParams.productId]" doc:name="Set Variable" doc:id="0eca0931-707d-46f0-a032-e4fdc6bbee5d" variableName="productId" />
+        <db:update doc:name="Update" doc:id="86ec4dcb-3a1a-4b04-8ad4-936e3df0f27c" config-ref="Database_Config">
+            <db:sql><![CDATA[update inventory
+set product_name=:productName,
+	brand=:brand,
+	category=:category,
+	price=:price
+where product_id=:productId]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	productName:payload.productName,
+	brand:payload.brand,
+	category:payload.category,
+	price:payload.price,
+	productId:attributes.uriParams.productId
+}]]]></db:input-parameters>
+        </db:update>
+        <db:select doc:name="Select" doc:id="fedebe34-8ced-4cef-9c3c-7f1cee030b77" config-ref="Database_Config">
+            <db:sql><![CDATA[select * from inventory where product_id=:productId;]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	productId:vars.productId
+}]]]></db:input-parameters>
+        </db:select>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Product updated successfully",
+  updatedProduct: payload
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\product:ordermanagement-config">
+        <set-variable value="#[%dw 2.0&#xA;output application/json&#xA;---&#xA;&#xA;&quot;select * from inventory where 1 = 1&quot; ++ (if(attributes.queryParams.category != null) &quot; and category= '&quot; ++&#xA; (attributes.queryParams.category default &quot;&quot;) ++ &quot;'&quot; else &quot;&quot;) ++&#xA; (if(attributes.queryParams.maxPrice != null) &quot; and price&lt; &quot; ++ (attributes.queryParams.maxPrice default 0)&#xA;   else &quot;&quot;&#xA; )]" doc:name="dynamicQuery" doc:id="df4a23f9-dfd1-4573-bee4-628ab327723a" variableName="dynamicQuery" />
+        <db:select doc:name="byFilters" doc:id="37c4276a-3144-46ed-be4d-a0955544c62d" config-ref="Database_Config">
+            <db:sql><![CDATA[#[vars.dynamicQuery]]]></db:sql>
+        </db:select>
+        <ee:transform doc:name="Transform Message" doc:id="75d3a8c6-6c45-4f16-9659-0bda9800c393">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\product\(productId):ordermanagement-config">
+        <db:select doc:name="byProductId" doc:id="fc954b8a-044f-448e-ab61-acaab412141c" config-ref="Database_Config">
+            <db:sql><![CDATA[select * from inventory where product_id=:productId;]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	productId:attributes.uriParams.productId
+}]]]></db:input-parameters>
+        </db:select>
+        <ee:transform doc:name="Transform Message" doc:id="37cd3be5-7b56-47f9-9bb5-e1880ce9809b">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\product:application\json:ordermanagement-config">
+        <set-variable value="#[&quot;P-&quot; ++ uuid()[0 to 5]]" doc:name="Set Variable" doc:id="df2834db-a0d9-4c88-bd5c-bb784f1c41b1" variableName="prodId" />
+        <db:insert doc:name="Insert" doc:id="0ccf9147-1647-44f8-8dbc-3fdcf3c0c0ce" config-ref="Database_Config">
+            <db:sql><![CDATA[insert into inventory(product_id, product_name, brand, category, quantity, availability, price)
+values(:id, :name, :brand, :category, :quantity, :availability, :price);]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	id:vars.prodId,
+	name:payload.productName,
+	brand:payload.brand,
+	category:payload.category,
+	quantity:payload.stock,
+	availability:true,
+	price:payload.price
+}]]]></db:input-parameters>
+        </db:insert>
+        <set-variable value="#[201]" doc:name="httpStatusCode" doc:id="ed945eaf-0c16-45b9-adc8-7de877d16ee0" variableName="statusCode" />
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Product added successfully, " ++ vars.prodId ++ " is the product id"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="put:\product\(productId)\restock:application\json:ordermanagement-config">
+        <set-variable value="#[attributes.uriParams.productId]" doc:name="productId" doc:id="75d38037-65e2-4e0c-b6ad-030f50ca8ba8" variableName="productId" />
+        <db:update doc:name="updateQuantity" doc:id="0e9ea777-bb09-4949-81bf-49f8291a874d" config-ref="Database_Config">
+            <db:sql><![CDATA[update inventory 
+set quantity=quantity + :quantity
+where product_id=:productId]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	quantity:payload.quantity,
+	productId:attributes.uriParams.productId
+}]]]></db:input-parameters>
+        </db:update>
+        <db:select doc:name="finalQuantity" doc:id="840604f5-9d94-474f-b86a-1357091014c6" config-ref="Database_Config">
+            <db:sql><![CDATA[select * from inventory where product_id=:productId;]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	productId:vars.productId
+}]]]></db:input-parameters>
+        </db:select>
+        <ee:transform doc:name="Transform Message" doc:id="89708f29-1130-4837-93c1-e33adf2bc953">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	ProductId:vars.productId,
+	stockQuantity:payload.quantity
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger level="INFO" message="post:\product\(productId)\restock:application\json:ordermanagement-config" />
+    </flow>
+    <flow name="put:\order\(orderId)\status:application\json:ordermanagement-config">
+        <set-variable value="#[attributes.uriParams.orderId]" doc:name="orderId" doc:id="0d2bea7d-c48f-41a5-ac72-3817889285eb" variableName="orderId" />
+        <db:update doc:name="updateDeliveryStatus" doc:id="8af77e89-032e-4fe7-8caa-220e27336582" config-ref="Database_Config">
+            <db:sql><![CDATA[update order_table 
+set delivery_status=:status
+where order_id=:orderId;]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	status:payload.status,
+	orderId:attributes.uriParams.orderId
+}]]]></db:input-parameters>
+        </db:update>
+        <db:select doc:name="getOrderDetails" doc:id="47741823-91de-42e6-ac62-580e4263f2bc" config-ref="Database_Config">
+            <db:sql><![CDATA[select * from order_table where order_id=:orderId;]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	orderId:vars.orderId
+}]]]></db:input-parameters>
+        </db:select>
+        <ee:transform doc:name="Transform Message" doc:id="281cf747-0cf4-4603-8fc5-a5c0d7a38f5c">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message:"Delivery status updated",
+	status:payload[0].delivery_status
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\product\stockStatus:ordermanagement-config">
+        <set-variable value="#[attributes.queryParams.status]" doc:name="status" doc:id="a686f406-4b27-4937-bad3-4e388e039ddf" variableName="status" />
+        <db:select doc:name="getAllData" doc:id="d9beb58f-badf-46dd-9667-6de241a69ed5" config-ref="Database_Config">
+            <db:sql><![CDATA[select * from inventory;]]></db:sql>
+        </db:select>
+        <ee:transform doc:name="Transform Message" doc:id="06294a8a-2487-4357-8b06-b73523ff2740">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var a=[
+    {
+        "product_id": "P-02956a",
+        "product_name": "Kylaq",
+        "brand": "Skodas",
+        "category": "Fake suv",
+        "quantity": 8,
+        "availability": true,
+        "price": 1500000
+    },
+    {
+        "product_id": "P-5545b3",
+        "product_name": "Venue",
+        "brand": "Hyundai",
+        "category": "Car",
+        "quantity": 30,
+        "availability": true,
+        "price": 1200000
+    },
+    {
+        "product_id": "P-02967a",
+        "product_name": "Brezza",
+        "brand": "Maruti",
+        "category": "Fake suv",
+        "quantity": 10,
+        "availability": true,
+        "price": 1500000
+    },
+    {
+        "product_id": "P-5545b3",
+        "product_name": "Nexon",
+        "brand": "Tata",
+        "category": "Unreliable car",
+        "quantity": 0,
+        "availability": true,
+        "price": 1200000
+    }
+]
+
+var groupedOutput = do{
+	(payload map (value)->{
+	productId:value.product_id,
+	productName:value.product_name,
+	brand:value.brand,
+	quantity:value.quantity,
+	status:if(value.quantity>=10) "inStock" else if(value.quantity>0 and value.quantity<10) "lowStock" else "outOfStock"
+})
+	
+}
+
+var finalOutput=do{
+	if(vars.status != null) (groupedOutput filter $.status==vars.status) else groupedOutput
+}
+---
+
+finalOutput groupBy $.status]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\order\(custId):ordermanagement-config" doc:id="5a3fff4e-f7fd-427d-bf6f-184aa688bccf">
+        <set-variable value="#[attributes.queryParams.orderId]" doc:name="orderId" doc:id="fc556223-682a-47c4-8e7e-84cc792083f1" variableName="orderId" />
+        <db:select doc:name="ordersList" doc:id="f3f698cd-19b6-4eb3-a7b5-95bf23ce0b5b" config-ref="Database_Config">
+            <db:sql><![CDATA[select * from order_table where cust_id=:custId;]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	custId:attributes.uriParams.custId
+}]]]></db:input-parameters>
+        </db:select>
+        <set-variable value="#[payload]" doc:name="ordersList" doc:id="cbef12c9-6ba9-4dc7-acba-56860bc9124c" variableName="ordersList" />
+        <set-variable value="#[[]]" doc:name="listOfItems" doc:id="ada71138-fe24-40ec-944c-f16c98cbbd3a" variableName="listOfItems" />
+        <foreach doc:name="For Each" doc:id="541f1c01-1a55-418b-93c8-63a45a7e9b88" collection="#[payload]">
+            <db:select doc:name="orderItems" doc:id="e455347b-7e4d-4ffe-98c4-c43989344dd6" config-ref="Database_Config">
+                <db:sql><![CDATA[select * from order_items where order_id=:orderId;]]></db:sql>
+                <db:input-parameters><![CDATA[#[{
+	orderId:payload.order_id
+}]]]></db:input-parameters>
+            </db:select>
+            <set-variable value="#[vars.listOfItems + payload]" doc:name="listOfItems" doc:id="b65d132c-07f1-4b00-8c7f-bfef8f8b39d3" variableName="listOfItems" />
+        </foreach>
+        <ee:transform doc:name="final response" doc:id="927cd82c-f7ec-4938-8cdd-f9843db1d854">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var list=[
+    {
+        "order_id": "O-348d38",
+        "product_id": "P-02956a",
+        "quantity": 3
+    },
+    {
+        "order_id": "O-348d38",
+        "product_id": "P-5545b3",
+        "quantity": 2
+    },
+    {
+        "order_id": "O-8b7561",
+        "product_id": "P-02956a",
+        "quantity": 1
+    },
+    {
+        "order_id": "O-8b7561",
+        "product_id": "P-5545b3",
+        "quantity": 2
+    },
+    {
+        "order_id": "O-e65974",
+        "product_id": "P-02956a",
+        "quantity": 1
+    },
+    {
+        "order_id": "O-e65974",
+        "product_id": "P-5545b3",
+        "quantity": 1
+    },
+    {
+        "order_id": "O-f28010",
+        "product_id": "P-02956a",
+        "quantity": 1
+    },
+    {
+        "order_id": "O-f28010",
+        "product_id": "P-5545b3",
+        "quantity": 0
+    }
+]
+var order=[
+    {
+        "order_id": "O-348d38",
+        "cust_id": "C-99e37d",
+        "order_date": "2026-05-28",
+        "total_order_price": 5700000,
+        "exp_del_date": "2026-06-01",
+        "delivery_status": "in transit"
+    },
+    {
+        "order_id": "O-88354d",
+        "cust_id": "C-99e37d",
+        "order_date": "2026-05-27",
+        "total_order_price": 1100000,
+        "exp_del_date": "2026-05-31",
+        "delivery_status": "in transit"
+    },
+    {
+        "order_id": "O-8b7561",
+        "cust_id": "C-99e37d",
+        "order_date": "2026-05-28",
+        "total_order_price": 3500000,
+        "exp_del_date": "2026-06-01",
+        "delivery_status": "in transit"
+    },
+    {
+        "order_id": "O-e65974",
+        "cust_id": "C-99e37d",
+        "order_date": "2026-05-29",
+        "total_order_price": 2300000,
+        "exp_del_date": "2026-06-02",
+        "delivery_status": "in transit"
+    },
+    {
+        "order_id": "O-f28010",
+        "cust_id": "C-99e37d",
+        "order_date": "2026-05-28",
+        "total_order_price": 1100000,
+        "exp_del_date": "2026-06-01",
+        "delivery_status": "in transit"
+    }
+]
+var filteredOrders = do{
+	if(vars.orderId != null) 
+	(vars.ordersList filter $.order_id == vars.orderId) else vars.ordersList
+}
+---
+filteredOrders map (value)->do{
+	var items = (flatten(vars.listOfItems) filter $.order_id==value.order_id)
+	---
+	{
+		"status":value.delivery_status,
+		"data":{
+			order_id:value.order_id,
+			customer_id:value.cust_id,
+			order_date:value.order_date,
+			expected_delivery_date:value.exp_del_date,
+			total_amount:value.total_order_price,
+			items:items map{
+				product_id:$.product_id,
+				quantity:$.quantity,
+				unitPrice:$.order_price,
+				totalPrice:($.order_price)*($.quantity)
+			}
+		}
+	}
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger level="INFO" message="get:\order:ordermanagement-config" />
+    </flow>
+</mule>

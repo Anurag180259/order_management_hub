@@ -1,0 +1,8 @@
+%dw 2.0
+
+type auto_6cbfcd72_11d0_4a00_8199_2f19130bb350_Input_Payload = {
+  cust_id: String, 
+  list_of_items: Array<{    quantity: Number,     productId: String,     _?: Any  }>, 
+  _?: Any
+}
+

@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_6cbfcd72_11d0_4a00_8199_2f19130bb350_Output_Variables_total_order_price = Number
+

@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<munit:config name="orderManagement-test-suite.xml" />
+	<munit:test name="addCustomerTest" doc:id="d741d532-9ca3-44fe-a5ce-e8312509be9e">
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Set Cust Id" doc:id="89c2ce24-55d7-41f1-ad1e-c2b8625cb475" processor="set-variable">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1c284721-1780-43df-bdf1-9ffcec1c02e2" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="custId" value='#["C-d7bdf6"]'/>
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="insertData" doc:id="d59598c4-10f5-492a-97ec-2450b1ffaa3e" processor="db:insert">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="5d075c57-28d7-4f50-b1f6-eb414aa64c9a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[{affectedRows: 1}]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="7f702fd8-3c13-4916-8804-cc2079ff9f68" >
+				<munit:payload value='#[{&#10;    "cust_name":"Payal",&#10;    "email":"Payal@1802",&#10;    "phone":"9067487040",&#10;    "city":"Nagpur"&#10;}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="bcb9f491-ba22-4d89-9e35-7a5c8d776246" name="post:\addCust:application\json:ordermanagement-config"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="0eb51d17-fe3b-45d1-94da-205f3bbf7e3a" is='#[MunitTools::equalTo({&#10;    "message": "Thanks for registering into orderManagement",&#10;    "Cust_id": "C-d7bdf6 is your customer id"&#10;})]' expression="#[payload]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="addCustomerTest-DuplicateEntry" doc:id="b2cc24c6-7343-4d92-b36a-5f0a73019c2e" expectedErrorType="DB:QUERY_EXECUTION">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="insertData" doc:id="4e893703-9303-4f66-9aa5-c7493eb6ae2f" processor="db:insert">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="5d075c57-28d7-4f50-b1f6-eb414aa64c9a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="DB:QUERY_EXECUTION" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="a0084962-75c6-499e-8d69-58958e120cbf" >
+				<munit:payload value='#[{&#10;    "cust_name":"Bhushan",&#10;    "email":"Bhu@1802",&#10;    "phone":"9068257172",&#10;    "city":"Ahemdabad"&#10;}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="d04e0dee-d4fb-4cfb-ae0c-6a24e32a9435" name="post:\addCust:application\json:ordermanagement-config"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="75dd3198-f0cc-439c-b57d-6af8ff9716ce" actual="#[payload]" expected='#[{&#10;    "Error": "Duplicate item found",&#10;    "Message": "Registration error"&#10;}]'/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="placeOrder-successScenario" doc:id="b47ed315-786b-4fd4-94b1-2bcf41f4cbd5">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="setOrderId" doc:id="5334729c-fcfa-4514-8423-62881bce89f1" processor="set-variable">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="a64d4991-62b9-4a0e-a6ac-d82c6f48770b" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="orderId" value='#["O-12e7e7"]' />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="IndividualItemProcessing" doc:id="a69984c0-7f16-47cb-9d5d-2d7f65097b5d" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="db9ccb7d-9280-4030-be13-30d743b3eb13" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="getUserData" doc:id="7982f085-5125-4509-906b-ae811379bad4" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="66c99464-059f-440c-b01b-5c1ab0dd0641" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="placeOrder" doc:id="70824a7e-16be-4de7-80b7-e18a19fa5c5d" processor="db:insert">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b7d34e1b-cc39-4226-91be-09b2e6fffdd5" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="getProductDetails" doc:id="a64cd80a-9a5d-4b4e-8d43-9f472112f1c5" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1b26b8e4-35e7-4645-8737-63b2c2b03c5c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="orderItemsInsert" doc:id="360b17f2-2ea9-4235-88a1-57b2cdc8c705" processor="db:insert">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3755a332-178d-4093-9b79-0f1066ac6c66" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="customerDetails Mock" doc:id="65c6314b-81e3-442b-bea1-b17d50d6a6dc" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="6fec633f-0edf-4d2d-b9f8-692d9b5b2370" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="sendMail" doc:id="44cd8695-3899-418b-a5dc-5412811a3f16" processor="email:send">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f683f07f-4afd-4e76-b11e-bb7b01fac668" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="deliveryTime" doc:id="537a4b7c-7676-4153-8298-58664328edb9" processor="set-variable">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="c0fdcbe0-db58-444d-a657-a260cccc1560" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="d5baee86-3634-4581-bd81-a122f8b85d2c" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://placeOrderConfigTest\inputPayload.json')]" mediaType="application/json" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="5fe624ee-4732-4a3c-9d52-bd93d9dee365" name="post:\order:application\json:ordermanagement-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="914352bb-3e3c-4a0e-9046-7a26138273df" actual="#[payload]" expected='#[{&#10;  message: "Your order has been successfully placed",&#10;  order_id:"O-12e7e7"&#10;}]'/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="placeOrder_orderExceeded" doc:id="bbc7dfd3-fd0d-4f84-aaa8-8e30066ef78a" expectedErrorType="APP:QUANTITY_EXCEEDED">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="individualItemProcessing" doc:id="ba271df5-fcda-447d-9253-a7dd932f6913" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="db9ccb7d-9280-4030-be13-30d743b3eb13" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="APP:QUANTITY_EXCEEDED" />
+					<munit-tools:variables >
+						<munit-tools:variable key="exceededProduct" value='#["Venue"]' />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="78192ff9-90ac-4f4e-8411-e6798fac6d86" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://placeOrderConfigTest\inputPayload.json')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="663c05c2-9ea9-4366-a1d8-1a31cf713c5b" name="post:\order:application\json:ordermanagement-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="8a3ceab9-d92c-4f73-a16a-4900a8394d2f" is='#[MunitTools::equalTo("status":"error",&#10;	"message":"Required quantity for " ++ vars.exceededProduct ++ " is not available")]' expression="#[payload]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="placeOrder-reverted" doc:id="4f5cd644-e51e-4c3c-8edb-c21834a418b0" description="When all the transactions are rolled back due to some db issue" expectedErrorType="ANY">
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Mock when" doc:id="c99f2482-a6b4-4465-beb6-ed0041045547" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="66c99464-059f-440c-b01b-5c1ab0dd0641" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="ANY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="3fef7579-53ed-4892-bbb3-66e6d63a1521" >
+				<munit:payload value="#[output application/json --- ('classpath://placeOrderConfigTest\inputPayload.json')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="d30f6989-d7f0-4ad5-a995-487cf8e1e104" name="post:\order:application\json:ordermanagement-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="a19933c2-d39d-4ede-a3a5-f06b3be84fa9" actual="#[payload]" expected='#[{&#10;	error:"Unexpected error occured",&#10;	message:"Transaction reverted"&#10;}]'/>
+		</munit:validation>
+	</munit:test>
+	<flow name="select_getProductDetails" doc:id="57c8103d-4262-412e-b7df-aae95f59eb7a" >
+		<try doc:name="Try" doc:id="cf142efa-b150-47a9-b556-d48f767ae571" >
+			<os:retrieve doc:name="individualItemProcessing_productDetails" doc:id="3a132e22-ff70-4a15-8a26-b97fe6570bdc" key="productDetails" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="c3115745-fa94-449c-98d6-5715cfe85746" type="ANY">
+					<set-payload value="#[1]" doc:name="Set Payload" doc:id="7a98e619-bbdb-4bce-b2ce-fe4f9042f533" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<os:store doc:name="individualItemProcessing_productDetails" doc:id="7ecab510-3e66-4982-bcdc-a78b3d3203a9" key="productDetails">
+			<os:value ><![CDATA[#[payload + 1]]]></os:value>
+		</os:store>
+		<choice doc:name="Choice" doc:id="21a0fdf1-7c1f-4f53-b4e7-ed10a8d10e4b" >
+			<when expression="#[payload == 1]">
+				<munit:set-event doc:name="Set Event" doc:id="808c8b29-c411-44f1-a057-4f3c144e5531" >
+					<munit:payload value='#[[&#10;    {&#10;        "product_id": "P-02956a",&#10;        "product_name": "Kylaq",&#10;        "brand": "Sakoda",&#10;        "category": "Fake suv",&#10;        "quantity": 10,&#10;        "availability": true,&#10;        "price": 1500000&#10;    }&#10;]]' />
+				</munit:set-event>
+			</when>
+			<when expression="#[payload == 2]">
+				<munit:set-event doc:name="Set Event" doc:id="f60c1795-b9ce-408f-ba5e-0bec1c814ca3" >
+					<munit:payload value='#[[&#10;    {&#10;        "product_id": "P-5545b3",&#10;        "product_name": "Venue",&#10;        "brand": "Hyundai",&#10;        "category": "Car",&#10;        "quantity": 33,&#10;        "availability": true,&#10;        "price": 1200000&#10;    }&#10;]]' />
+				</munit:set-event>
+			</when>
+			<otherwise >
+				<munit-tools:fail doc:name="Fail" doc:id="efc207de-c30c-4095-9d5c-aa8081143391" message='#["For each loop ran for third time. Which is unexpected"]'/>
+			</otherwise>
+		</choice>
+	</flow>
+	<munit:test name="individualItemProcessing_successScenario" doc:id="dd482d8c-dead-46f1-8c1c-ae471b8ca8db">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="getProductDetails" doc:id="4e71a2ea-cc9d-4617-b638-982aee4fb8f4" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="010d249b-4a15-41ac-a449-7a1e4fb3b484" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-call flow="select_getProductDetails" />
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="updateQuantity" doc:id="0b674fda-bbae-4770-9e8b-ed4fafc6e4bd" processor="db:update">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="17d09e62-5e9d-4fbc-b365-06604bf1a4b7" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="901c6c5a-8961-4a56-9560-6f1e331e40cd" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://placeOrderConfigTest\inputPayload.json')]" />
+				<munit:variables >
+					<munit:variable key="totalOrderPrice" value="#[output application/json --- 0]" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="6a364a37-0955-4186-92f7-9d0d2fe25951" name="individualItemProcessing"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="d6d7eac6-b890-4a06-8126-8d47baead37a" actual="#[vars.totalOrderPrice]" expected="#[3900000]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="individualItemProcessing_quantityExceeded" doc:id="9140c9e7-58b7-459e-9a0b-62eb779f23a9" expectedErrorType="APP:QUANTITY_EXCEEDED">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="f990a204-c4b2-45e2-a8fe-a9b7c550692c" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="010d249b-4a15-41ac-a449-7a1e4fb3b484" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[output application/json&#10;---&#10;[&#10;    {&#10;        "product_id": "P-02956a",&#10;        "product_name": "Kylaq",&#10;        "brand": "Sakoda",&#10;        "category": "Fake suv",&#10;        "quantity": 1,&#10;        "availability": true,&#10;        "price": 1500000&#10;    }&#10;]]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="dbd43281-fcd2-4465-aa62-7dd4bea5609f" >
+				<munit:payload value='#[output application/json&#10;---&#10;{&#10;  "custId": "C-99e37d",&#10;  "listOfItems": [&#10;    {&#10;      "productId": "P-02956a",&#10;      "quantity": 3&#10;    },&#10;    {&#10;      "productId": "P-5545b3",&#10;      "quantity": 2&#10;    }&#10;  ]&#10;}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="04baecef-42cc-40c2-85ba-41f090b5b0ab" name="individualItemProcessing"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="9a8a84cb-8689-45da-b4aa-4e381038db9e" actual="#[error.errorType]" expected='#["APP:QUANTITY_EXCEEDED"]'/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="getOrderDetails_byCustId_and_orderId" doc:id="915be9ba-ce8a-4e41-95a9-d620a07b6078">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="getAllOrders" doc:id="fc36e06e-ab9d-481b-a705-1351d96c8624" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f3f698cd-19b6-4eb3-a7b5-95bf23ce0b5b" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[[&#10;	{&#10;		order_id:"O-6d8b92",&#10;		cust_id:"C-4bb700",&#10;		order_date:"2026-06-11",&#10;		total_order_price:3900000.0,&#10;		exp_del_date:"2026-09-29",&#10;		delivery_status:"in transit"&#10;	},&#10;	{&#10;		order_id:"O-f97af0",&#10;		cust_id:"C-4bb700",&#10;		order_date:"2026-06-11",&#10;		total_order_price:2400000.0,&#10;		exp_del_date:"2026-09-29",&#10;		delivery_status:"in transit"&#10;	}&#10;]]' mediaType="application/java" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="getOrderItems" doc:id="a7ff3ca0-a0ad-4123-856a-94059dc90043" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="e455347b-7e4d-4ffe-98c4-c43989344dd6" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-call flow="getOrders_getItems_withOrderId" />
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="58d386a6-a1c6-46ad-9e32-450de5d896f5" >
+				<munit:attributes value='#[output application/json&#10;---&#10;{&#10;	uriParams:{&#10;		custId:"C-220d34"&#10;	},&#10;	queryParams:{&#10;		orderId:"O-6d8b92"&#10;	}&#10;}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="d247f7ea-f1d5-47b5-b13f-10825215ea6b" name="get:\order\(custId):ordermanagement-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="1dacef62-88d6-42f2-adf3-eda38c3803be" actual="#[payload]" expected='#[[&#10;    {&#10;        "status": "in transit",&#10;        "data": {&#10;            "order_id": "O-6d8b92",&#10;            "customer_id": "C-4bb700",&#10;            "order_date": "2026-06-11",&#10;            "expected_delivery_date": "2026-09-29",&#10;            "total_amount": 3900000,&#10;            "items": [&#10;                {&#10;                    "product_id": "P-02956a",&#10;                    "quantity": 1,&#10;                    "unitPrice": 1500000,&#10;                    "totalPrice": 1500000&#10;                },&#10;                {&#10;                    "product_id": "P-5545b3",&#10;                    "quantity": 2,&#10;                    "unitPrice": 1200000,&#10;                    "totalPrice": 2400000&#10;                }&#10;            ]&#10;        }&#10;    }&#10;]]'/>
+		</munit:validation>
+	</munit:test>
+	<flow name="getOrders_getItems_withOrderId" doc:id="ab13e868-616a-4613-87eb-7e95d351724b" >
+		<try doc:name="Try" doc:id="40c2f65e-07bb-4d8c-a39f-ff4df4e1102f" >
+			<munit-tools:retrieve doc:name="Retrieve" doc:id="6fa6a80b-637f-443e-aa9f-a311ef8dcb9f" key="orderItem" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="7ed340da-5341-4ab4-96f1-90310b94b67e" type="ANY">
+					<set-payload value="#[1]" doc:name="Set Payload" doc:id="f11a0ad1-3fab-4d14-8185-79ed7d173798" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<munit-tools:store doc:name="Store" doc:id="641bbc22-6f86-41b5-9fe6-9ee6a958d41a" key="orderItem">
+			<munit-tools:value ><![CDATA[#[payload + 1]]]></munit-tools:value>
+		</munit-tools:store>
+		<choice doc:name="Choice" doc:id="710a5e0b-a287-4b93-8ebb-c8f23697cb1a" >
+			<when expression="#[payload == 1]">
+				<munit:set-event doc:name="Set Event" doc:id="fe125563-a69b-4bd6-8d09-9365f2db7156" >
+					<munit:payload value='#[[&#10;	{&#10;		order_id:"O-6d8b92",&#10;		product_id:"P-02956a",&#10;		quantity:1,&#10;		order_price:1500000.0&#10;	},&#10;	{&#10;		order_id:"O-6d8b92",&#10;		product_id:"P-5545b3",&#10;		quantity:2,&#10;		order_price:1200000.0&#10;	}&#10;]]' mediaType="application/java" />
+				</munit:set-event>
+			</when>
+			<when expression="#[payload == 2]">
+				<munit:set-event doc:name="Set Event" doc:id="96c2f044-7bf6-4ffe-a3fc-b1f93a27a9a5" >
+					<munit:payload value='#[[&#10;	{&#10;		order_id:"O-f97af0",&#10;		product_id:"P-5545b3",&#10;		quantity:2,&#10;		order_price:1200000.0&#10;	}&#10;]]' mediaType="application/java" />
+				</munit:set-event>
+			</when>
+			<otherwise >
+				<munit-tools:fail doc:name="Fail" doc:id="12698e80-5e76-40d7-8b61-e25e3ff5e8ea" message='#["For each ran for the third time due to some unexpected reason!"]'/>
+			</otherwise>
+		</choice>
+	</flow>
+	<munit:test name="getOrderDetails_byCustIdOnly" doc:id="3f03f0d7-15aa-423f-a4e8-ae7083b3ad0e" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="selectOrdersList" doc:id="6bd90796-2176-464e-99b1-c246f12e02ef" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f3f698cd-19b6-4eb3-a7b5-95bf23ce0b5b" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[output application/json&#10;---&#10;[&#10;	{&#10;		order_id:"O-6d8b92",&#10;		cust_id:"C-4bb700",&#10;		order_date:"2026-06-11",&#10;		total_order_price:3900000.0,&#10;		exp_del_date:"2026-09-29",&#10;		delivery_status:"in transit"&#10;	},&#10;	{&#10;		order_id:"O-f97af0",&#10;		cust_id:"C-4bb700",&#10;		order_date:"2026-06-11",&#10;		total_order_price:2400000.0,&#10;		exp_del_date:"2026-09-29",&#10;		delivery_status:"in transit"&#10;	}&#10;]]' mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="selectOrderItems" doc:id="cf9ee975-28e4-426b-9284-3466d2de1280" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="e455347b-7e4d-4ffe-98c4-c43989344dd6" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-call flow="getOrders_getItems_withoutOrderId" />
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="8d8d46b9-fd41-4c42-985e-e328b864862e" >
+				<munit:attributes value='#[{&#10;	uriParams:{&#10;		custId:"C-4bb700"&#10;	}&#10;}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="02a682d0-e420-4da1-bacd-560dad108a7b" name="get:\order\(custId):ordermanagement-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="73f48e32-03a7-417f-9e28-82dd55be1fd9" actual="#[payload]" expected='#[[&#10;    {&#10;        "status": "in transit",&#10;        "data": {&#10;            "order_id": "O-6d8b92",&#10;            "customer_id": "C-4bb700",&#10;            "order_date": "2026-06-11",&#10;            "expected_delivery_date": "2026-09-29",&#10;            "total_amount": 3900000,&#10;            "items": [&#10;                {&#10;                    "product_id": "P-02956a",&#10;                    "quantity": 1,&#10;                    "unitPrice": 1500000,&#10;                    "totalPrice": 1500000&#10;                },&#10;                {&#10;                    "product_id": "P-5545b3",&#10;                    "quantity": 2,&#10;                    "unitPrice": 1200000,&#10;                    "totalPrice": 2400000&#10;                }&#10;            ]&#10;        }&#10;    },&#10;    {&#10;        "status": "in transit",&#10;        "data": {&#10;            "order_id": "O-f97af0",&#10;            "customer_id": "C-4bb700",&#10;            "order_date": "2026-06-11",&#10;            "expected_delivery_date": "2026-09-29",&#10;            "total_amount": 2400000,&#10;            "items": [&#10;                {&#10;                    "product_id": "P-5545b3",&#10;                    "quantity": 2,&#10;                    "unitPrice": 1200000,&#10;                    "totalPrice": 2400000&#10;                }&#10;            ]&#10;        }&#10;    }&#10;]]'/>
+		</munit:validation>
+	</munit:test>
+	<flow name="getOrders_getItems_withoutOrderId" doc:id="979aaaa2-feba-4afb-86c8-56c67dd1e1ac" >
+		<try doc:name="Try" doc:id="800fef4f-34d3-4a04-9f23-5ba7bde44379">
+			<munit-tools:retrieve doc:name="Retrieve" doc:id="30bbc8b0-326e-4e17-8c60-c7ad6d46ee86" key="orderItems2" />
+			<error-handler>
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ec871699-a9bb-4c4f-8180-9ba6557f4311" type="ANY">
+					<set-payload value="#[1]" doc:name="Set Payload" doc:id="7ada7013-4722-425d-bdff-9dd9faeab0b9" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<munit-tools:store doc:name="Store" doc:id="2020929b-9adf-45c3-9455-0e1da1e0c4d6" key="orderItems2">
+			<munit-tools:value><![CDATA[#[payload + 1]]]></munit-tools:value>
+		</munit-tools:store>
+		<choice doc:name="Choice" doc:id="9b13e26c-172b-4b95-aa2d-fcfab47d2f75">
+			<when expression="#[payload == 1]">
+				<munit:set-event doc:name="Set Event" doc:id="5ed5785f-d0db-4675-874f-d55e2845c377">
+					<munit:payload value='#[[&#10;	{&#10;		order_id:"O-6d8b92",&#10;		product_id:"P-02956a",&#10;		quantity:1,&#10;		order_price:1500000.0&#10;	},&#10;	{&#10;		order_id:"O-6d8b92",&#10;		product_id:"P-5545b3",&#10;		quantity:2,&#10;		order_price:1200000.0&#10;	}&#10;]]' mediaType="application/java" />
+				</munit:set-event>
+			</when>
+			<when expression="#[payload == 2]">
+				<munit:set-event doc:name="Set Event" doc:id="efb9e3c9-4523-456a-8c21-3186d005cc08">
+					<munit:payload value='#[[&#10;	{&#10;		order_id:"O-f97af0",&#10;		product_id:"P-5545b3",&#10;		quantity:2,&#10;		order_price:1200000.0&#10;	}&#10;]]' mediaType="application/java" />
+				</munit:set-event>
+			</when>
+			<otherwise>
+				<munit-tools:fail doc:name="Fail" doc:id="b6d33ce1-9876-4ab7-86d5-ddb785d9c545" />
+			</otherwise>
+		</choice>
+	</flow>
+
+
+</mule>
