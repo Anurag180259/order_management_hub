@@ -44,4 +44,5 @@ local.properties
 target/
 .mule/
 .DS_Store
-src/main.resources/configuration.propertiesvelocity.log
+src/main.resources/configuration.properties
+velocity.log
