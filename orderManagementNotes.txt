@@ -1,0 +1,160 @@
+how to add period to a certain date and time	
+	if the time is saved in "time" then
+		
+		newTime=time+|P2D|  //Period 2 Days
+					 |P2M|  //period 2 month
+					 |P2Y|  //period 2 years
+					 
+	when the time of the dateTime needs to be changed
+		
+		newTime=time+|PT2H| //period time 2 hours
+					 |PT2S|
+					 |PT2M|
+					 
+error
+	during evaluating custom period for delivery time based on city
+		set variable saved |P2D| in java object format
+			when adding that to (now() as date) there was a format mismatch
+				so use %dw 2.0
+				       output application/json
+					   ---
+				to convert the period variable to json
+				and then use "as period" in (now() as date) + (vars.deliveryDate as Period)
+				
+confusion
+	I am first doing the orderItems insert and then doing the order table insert
+		but if there is some error after doing the orderItems insert the order table entry will not be entered
+			orderItems entry becomes redundant after the second try
+	Solution 1: if any error comes after the first entry, revert the entry using the delete query
+	Solution 2: after research i found out about the always begin feature of try block 
+				so first enclose every transaction in only one try block and and enable transaction:always begin 
+					so if any error comes, and if any transaction is done then it will be reverted
+					
+	Always_begin: all the transactions inside the try block will be linked, any error and all will be reverted
+	begin_or_join: this is used when we have a nested try block, so if there is any transaction in the parent block and other in child try block then all will be linked
+	indifferent: doesnt take any responsibility of the transactions
+	
+	What this does is, this performs all the transactions but hold them in the queue, and when the try block is fully executed and there is no error
+	then only all the transactions are commited in the same order or otherwise all are ommited and nothing gets altered
+	
+Error
+	I was doing all the transactions related to the individual prodcuts like fetching their prices and updating the quantity in only one for each
+	block along with the actual inserting individual order items in the order_items table but i was not able to do it in the same for each block
+	as for inserting data in the orderItems table i needed the order_id to be entered in the order table as it is being used as a foreign key in the 
+	orderItems table 
+		so the flow looks like this
+			(fetch individual product details for calculating total cost
+			->
+			updating the quantity for the items of which the order is placed)same for each block
+			->
+			adding the entry for the whole order in the order table(outside forEach)
+			->
+			adding entry in the order items table(second for each)
+			
+queryParam
+	During some operations if we need some details it can be send through query param, but query param once defined can be optional, and this is not
+	the thing that we are working on there is something that the request is working on but there are some details that we need for this initial thing to 
+	work
+		example:if we are fetching weather data of the specific city the city name become the resource that we are working on
+				but the time of the day becomes a parameter needed to perform the main operations
+				so time of the day can be sent as the query param, or a date can be send using same
+pathParam
+	This is the parameter that we are actually working upon,
+		example:in this very project while restocking, we are acting upon a specific resourse that is a specific product, so the product id will
+				be sent in the path param
+In short pathParam identifies the specific resource that we are working on and query param is non mandatory detail required for performing action on the main resource
+
+
+Confusion
+	when i am doing get/product i have two query params(maxPrice, category), and there are three combinations for these 2 filters and that is
+	(category,maxprice)(only maxPrice) and (only category)
+		but when there are multiple filters like 10 filters the number of choice routers increase exponentially so 
+			the solution is to evaluate the sql query in dataweave and store it in a variable (named dynamicQuery here) and then using the if conditions 
+			we will determine if some value is given append it if not then append empty array
+				but this way only the string of the query is created, and vars.dynamicQuery cant be used in sql text box
+					so use #[vars.dynamicQuery] what this does is to whatever is in #[] will be evaluated as dataweave, and the result will be thrown in 
+					the sql text box as string 
+						so in this case only the filters are are given will be appended in the query 
+						
+Confusion
+	GET /orders/(cust_id)?order_id=
+		So the details needed for this output was saved in 2 different tables, i.e. order table and orderItems table so i neeeded to fetch data
+		from both join them and display it
+			I had 2 options
+				1.To use the join feature in SQl to fetch the joined table with only those order items which was related to the order_id
+					but this is a mulesoft project so i want to use mulesoft things for as much processes as possible although SQL way is the more efficient way
+				2.Second option was to fetch the order list for a specific customer and fetch the whole order_items_list and filter it in the dataweave which is the
+					most inefficient way.
+				3.Third option is to fetch the list of orders and then use for each to fetch the orderItems based on the order_id and append all the items in a different
+					list
+		All this confusion was because when the queryParam doesnt have any order_id, so we can fetch the list of orders using only cust_id, but the output
+		also needs list of items which are only present int he other table and we need order_id for that so all thsi confusion was, if the queryParam
+		doesnt contain the specific order_id but the order_id can actually be fetched using the list of ordders that are being fetched using the cust_id
+		
+Wrong Logic
+	So we are not actually saving the specific price of each items at the time of ordering the items so if the price is changed in the main table 
+	and we are fetching it after the price change and displaying it so there is a difference in what price it was ordered and what is being shown 
+	although the total price at the time of ordering has been saved in the order table, this needs to be changed in the next version.
+	
+Confusion
+	In email SMTP connector, by mistake i changed the encoder to Base64, due to which it was encoding the mail content to something else and I was not 
+	able to figure out that, chatGpt was also not able to figure out the issue, but as soon as i changed it to 7bit it worked, 8bit should also work
+		Base64 can be used to encode attachemnets, like i can add a PDF receipt for this encoding would be required
+
+Testing
+	/cust/add
+		test case 1: Success path
+			when everything is correct
+				mock generate id and db result
+		test case 2: When duplicate copy of email is sent
+			throw error
+		test case 3: when any required field is missing(not executed but possible)
+		Very Silly mistake:
+			I dindt mocked the insert data as i wasnt expecting the result to be used any where
+				but as it wasnt mocked it actually connected to the db and threw the duplicate error and it went to error handler and sent the 
+				error payload
+					but the munit was expecting the happy path payload
+		
+API Led connectivity
+	Experience layer — tailored APIs for specific consumers (mobile app, web, third party)
+	Process layer — orchestration logic, combines data from multiple systems
+	System layer — direct connection to backend systems (DB, SAP, Salesforce)
+	
+Testing
+	I cant use the recording feature when there is some error getting thrown while the execution recording, even if it was intended for the specific case
+	
+	Mulesoft store
+		-this is a in house store that stores key value pairs and the scope for this store is for the execution of the flow 
+		-in testing it can be used when i am using for each and for each has a processor which is returning different value each time being called
+			so mock when for this processor will call a subflow that will return a payload based on the order at which it is being called 
+				and the count will be maintained by the store
+				
+Transaction-Always_begin
+	When this thing is enabled then the try block expects a transaction to be completed
+		but when testing there is no db connection so the try block throws timeout and fails the test
+		This issue only comes when test run in debug mode not when ran directly
+		
+Set-Event error
+	when setting an event if i am taking the payload from an file.json saved in resources it comes as a java object or some other format than json
+	even though it is saved as .json, so i need to type cast it in the same box where i am giving the url of the file 
+		(output application/json ---)
+	but when the payload is given locally direct in this box and not by using the url the format is not needed to be mentioned
+	
+
+
+I have no reasoning for this
+	Munit testing
+		Mocking a select statement i have been sending the payload array as 
+		output application/json
+		---
+		[]
+		Meaning i have been writing this converting json thing in dataweave only and has been working flawlessly since then
+			but in this getOrderItems_byCustId_and_orderId even after converting it in dataweave it was sending the payload in */* i.e. binary format
+		i had to manually change the mime type property below it to send it via java 
+			but this is just ridiculous working for one test adn not for another one 
+				wasted my 2:30 hrs
+				
+
+
+Status codes used
+409-conflict, when user entered already existing phone number or email
