@@ -158,3 +158,51 @@ I have no reasoning for this
 
 Status codes used
 409-conflict, when user entered already existing phone number or email
+
+create schema order_management;
+use order_management;
+create table cust_data
+	(cust_id varchar(30) primary key,
+    cust_name varchar(20),
+    email varchar(30) unique,
+    phone varchar(15) unique,
+    city varchar(20));
+select * from cust_data;
+drop table cust_data;
+
+create table inventory
+	(product_id varchar(10) primary key,
+    product_name varchar(20),
+    brand varchar(20),
+    category varchar(20),
+    quantity integer,
+    availability boolean,
+    price double);
+    
+    select * from inventory;
+    
+create table order_table
+(order_id varchar(10) primary key,
+cust_id varchar(10),
+order_date date,
+total_order_price double,
+exp_del_date date,
+delivery_status varchar(10),
+foreign key (cust_id) references cust_data(cust_id)); 
+    
+create table order_items
+(order_id varchar(20),
+product_id varchar(20),
+quantity int,
+order_price double,
+foreign key (order_id) references order_table(order_id),
+foreign key (product_id) references inventory(product_id));
+
+drop table order_items;
+    
+    
+    
+    
+    
+    
+    
