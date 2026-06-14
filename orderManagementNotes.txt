@@ -75,6 +75,9 @@ Confusion
 					so use #[vars.dynamicQuery] what this does is to whatever is in #[] will be evaluated as dataweave, and the result will be thrown in 
 					the sql text box as string 
 						so in this case only the filters are are given will be appended in the query 
+	This technique has some business level limit someone having the url can send malicious data to break the api
+		so claude gave me another solution to use stored procedure, in which i will make a usable function in the sql workbench itself and then
+			use that function to provide either null or the present value, the query will be given in the queries file
 						
 Confusion
 	GET /orders/(cust_id)?order_id=
@@ -200,7 +203,26 @@ foreign key (product_id) references inventory(product_id));
 
 drop table order_items;
     
-    
+delimiter // 
+
+create procedure getProducts(
+in p_category varchar(50),
+in p_maxPrice double)
+begin
+	select * from inventory where
+    (p_category is null or category = p_category)
+    and (p_maxPrice is null or price<=p_maxPrice);
+end//
+
+delimiter ;
+
+one more inconsistency with anypoint studio
+	when i am setting the custId with syntax "C-" ++ uuid()[0 to 5]
+		and i am using that in logger so it is not parsing the value as a string and throwing an error, but was working when i used it directly in
+		select query dataweave this may be due to how logger and select dataweave parse things, so i wrote the output application/josn --- before the uuid setting and it worked
+	the same way i generated productId using the uuid() method and when i used that in logger i dont needed to write that output application/josn --- 
+	above the product id generation logic and it worked here 
+		
     
     
     
