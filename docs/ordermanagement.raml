@@ -1,0 +1,297 @@
+#%RAML 1.0
+title: orderManagement
+
+
+
+types:
+  orderItems:
+    properties:
+      productId: string
+      quantity: integer
+
+/order:
+  post:
+    body:
+      application/json:
+        properties:
+          custId: string
+          listOfItems:
+            type: array
+            items: orderItems
+    responses:
+      201:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Your order has been successfully placed",
+                "order_id": "O-81ab83"
+              }
+      422:
+        body:
+          application/json:
+            example:
+              {
+                "status": "error",
+                "message": "Required quantity for Venue is not available"
+              }
+      500:
+        body:
+          application/json:
+            example:
+              {
+	              error:"Unexpected error occured",
+	              message:"Transaction reverted"
+              }
+  /{custId}:
+    get:
+      queryParameters:
+        orderId:
+          type: string
+          required: false
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                [
+                  {
+                      "status": "in transit",
+                      "data": {
+                          "order_id": "O-12e7e7",
+                          "customer_id": "C-99e37d",
+                          "order_date": "2026-06-09",
+                          "expected_delivery_date": "2026-06-13",
+                          "total_amount": 3900000,
+                          "items": [
+                              {
+                                  "product_id": "P-02956a",
+                                  "quantity": 1,
+                                  "unitPrice": 1500000,
+                                  "totalPrice": 1500000
+                              },
+                              {
+                                  "product_id": "P-5545b3",
+                                  "quantity": 2,
+                                  "unitPrice": 1200000,
+                                  "totalPrice": 2400000
+                              }
+                          ]
+                      }
+                  }
+              ]
+  /{orderId}:
+    /status:
+      put:
+        body:
+          application/json:
+            properties:
+              status:
+                type: string
+                required: true
+                enum: [inTransit, shipped, outForDelivery, delivered, cancelled]
+        responses:
+          200:
+            body:
+              application/json:
+                example:
+                  {
+                    "message": "Delivery status updated",
+                    "status": "delivered"
+                  }
+            
+/addCust:
+  post:
+    body:
+      application/json:
+        properties:
+          custName: 
+            type: string 
+            required: true
+          email:
+            type: string
+            required: true
+          phone:
+            type: string
+            required: true
+          city:
+            type: string
+            required: true
+    responses:
+      201:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Thanks for registering into orderManagement",
+                "Cust_id": "C-ec28f4 is your customer id"
+              }
+      409:
+        body:
+          application/json:
+            example:
+              {
+                "Error": "Duplicate item found",
+                "Message": "Email is already registered. Use alternate Email"
+              }
+
+/product:
+  get:
+    queryParameters:
+      category:
+        type: string
+        required: false
+      maxPrice:
+        type: number
+        required: false
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              [
+                {
+                    "product_id": "P-5545b3",
+                    "product_name": "Venue",
+                    "brand": "Hyundai",
+                    "category": "Car",
+                    "quantity": 22,
+                    "availability": true,
+                    "price": 1200000
+                }
+            ]
+  post:
+    body:
+      application/json:
+        properties:
+          productName:
+           type: string
+           required: true
+          brand:
+            type: string
+            required: true
+          category:
+            type: string
+            required: true
+          stock:
+            type: integer
+            required: true
+          price:
+            type: number
+            required: true
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Product added successfully, P-e98f5a is the product id"
+              }
+  /{productId}:
+    get:
+      description: get product details by productId
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                [
+                  {
+                      "product_id": "P-02956a",
+                      "product_name": "Kylaq",
+                      "brand": "SkodaIndia",
+                      "category": "Fake suv",
+                      "quantity": 22,
+                      "availability": true,
+                      "price": 1500000
+                  }
+              ]
+    put:
+      body:
+        application/json:
+          properties:
+            productName:
+              type: string
+              required: true
+            brand:
+              type: string
+              required: true
+            category:
+              type: string
+              required: true
+            price:
+              type: number
+              required: true
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                {
+                  "message": "Product updated successfully",
+                  "updatedProduct": [
+                      {
+                          "product_id": "P-02956a",
+                          "product_name": "Kylaq",
+                          "brand": "SkodaIndia",
+                          "category": "Fake suv",
+                          "quantity": 22,
+                          "availability": true,
+                          "price": 1500000
+                      }
+                  ]
+              }
+    /restock:
+      put:
+        body:
+          application/json:
+            properties:
+              quantity:
+                type: number
+                required: true
+        responses:
+          200:
+            body:
+              application/json:
+                example:
+                  {
+                    "ProductId": "P-02956a",
+                    "stockQuantity": [
+                        23
+                    ]
+                }
+  /stockStatus:
+    get:
+      description: get stock status of every product
+      queryParameters:
+        status:
+          type: string
+          required: false
+          enum: [inStock, lowStock, outOfStock]
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                {
+                    "inStock": [
+                        {
+                            "productId": "P-02956a",
+                            "productName": "Kylaq",
+                            "brand": "SkodaIndia",
+                            "quantity": 22,
+                            "status": "inStock"
+                        },
+                        {
+                            "productId": "P-1c8d96",
+                            "productName": "Nexon",
+                            "brand": "Tata",
+                            "quantity": 10,
+                            "status": "inStock"
+                        }
+                    ]
+                }
+
+
+
+          
