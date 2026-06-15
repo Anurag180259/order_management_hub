@@ -338,13 +338,20 @@ output application/json
 	custId:vars.originalPayload.custId
 }]]]></db:input-parameters>
         </db:select>
-        <email:send doc:name="orderConfirmation" doc:id="f683f07f-4afd-4e76-b11e-bb7b01fac668" toAddresses="#[payload.email]" config-ref="Email_SMTP" fromAddress="anuragninawe1802@gmail.com" subject="Order confirmation">
+        <try doc:name="Try" doc:id="6c0453f8-f8fc-4338-b5b9-7d897bbfcc72" >
+			<email:send doc:name="orderConfirmation" doc:id="f683f07f-4afd-4e76-b11e-bb7b01fac668" toAddresses="#[payload.email]" config-ref="Email_SMTP" fromAddress="anuragninawe1802@gmail.com" subject="Order confirmation">
             <reconnect count="10" />
             <email:body contentType="text/plain" contentTransferEncoding="8BIT">
                 <email:content><![CDATA[#["Your order " ++ (vars.orderId default "") ++" has been successfully placed"]]]></email:content>
             </email:body>
         </email:send>
-        <logger level="INFO" doc:name="orderConfirmation email" doc:id="fa9f07f9-67f2-4a64-927e-ec57a1c6d450" message='#[{&#10;	info:"confirmation email sent"&#10;}]'/>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f56b5fed-9171-4010-bb7c-58cfb9bb825b" type="ANY">
+					<logger level="INFO" doc:name="email connector failure" doc:id="0efa0dc2-bfc8-46fc-a035-4939c038cdfd" message='#[{&#10;	info:"email connector failed to send email"&#10;}]'/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="orderConfirmation email" doc:id="fa9f07f9-67f2-4a64-927e-ec57a1c6d450" message='#[{&#10;	info:"confirmation email sent"&#10;}]'/>
 		<set-variable value="#[output application/json&#10;---&#10;201]" doc:name="httpStatusCode" doc:id="6c896b22-8a73-4a0e-a487-f7e6976f2d97" variableName="httpStatus" />
         <ee:transform doc:name="Transform Message">
             <ee:message>
